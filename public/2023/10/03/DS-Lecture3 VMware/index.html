@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/oliviablog.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/oliviablog.github.io/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/oliviablog.github.io/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/oliviablog.github.io/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/oliviablog.github.io/css/main.css">
+
+
+<link rel="stylesheet" href="/oliviablog.github.io/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"olive-2019.github.io","root":"/oliviablog.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="VMware 的容错系统，走指令复制的路子">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式系统 容错VMware FT">
+<meta property="og:url" content="https://olive-2019.github.io/oliviablog.github.io/2023/10/03/DS-Lecture3%20VMware/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="VMware 的容错系统，走指令复制的路子">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-10-02T16:26:51.000Z">
+<meta property="article:modified_time" content="2023-10-05T07:05:00.952Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="mit 6.824">
+<meta property="article:tag" content="容错">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://olive-2019.github.io/oliviablog.github.io/2023/10/03/DS-Lecture3%20VMware/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>分布式系统 容错VMware FT | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/oliviablog.github.io/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/oliviablog.github.io/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/oliviablog.github.io/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/oliviablog.github.io/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/oliviablog.github.io/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://olive-2019.github.io/oliviablog.github.io/2023/10/03/DS-Lecture3%20VMware/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/oliviablog.github.io/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式系统 容错VMware FT
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2023-10-03 00:26:51" itemprop="dateCreated datePublished" datetime="2023-10-03T00:26:51+08:00">2023-10-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-10-05 15:05:00" itemprop="dateModified" datetime="2023-10-05T15:05:00+08:00">2023-10-05</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>VMware 的容错系统，走指令复制的路子</p>
+<span id="more"></span>
+<h1 id="论文阅读"><a href="#论文阅读" class="headerlink" title="论文阅读"></a>论文阅读</h1><p>本质上就是VMware的老本行，用VMM消除指令执行的不确定性，并通过传输指令的方式对系统进行复制</p>
+<h2 id="主备份容错"><a href="#主备份容错" class="headerlink" title="主备份容错"></a>主备份容错</h2><p>主备份服务器保持一致有两种方式：</p>
+<ol>
+<li><strong>状态转移</strong>：将primary的所有状态发送给backup，缺点是传输数据量大。</li>
+<li><strong>备份状态机</strong>：将primary的所有操作给backup一份，让backup称为primary的状态，传输数据量小。</li>
+</ol>
+<h2 id="VMware"><a href="#VMware" class="headerlink" title="VMware"></a>VMware</h2><p>两个虚拟机分别是primary和backup，部署在不同机器上，共享磁盘。<br>虚拟机和物理机之间有一层虚拟机管理程序（VMM）hypervisor，VMM对硬件的模拟和控制可以将不确定的操作确定化，保证后续的replay。<br>primary和backup之间通过<strong>日志</strong>来实现备份状态机同步。VMM将primary的所有操作确定化为一条x86 CPU指令，并写出日志，通过logging channel传输到backup的log cache上。</p>
+<h2 id="logging-buffer和channel"><a href="#logging-buffer和channel" class="headerlink" title="logging buffer和channel"></a>logging buffer和channel</h2><p>primary和backup的状态备份通过<strong>primary写出日志，backup读取日志</strong>的方式进行。这个地方的写出、读取并不涉及磁盘，而是在内存中进行的，即logging buffer。<br>两个logging buffer之间的通信通过logging channel进行。<br>需要保证两者的logging buffer处于平衡状态，如果backup 的replay太慢，1.primary的logging buffer会爆，2.积存太多日志，primary失效后，需要等待backup较长时间执行replay操作。从外部看，系统响应时间较长。</p>
+<h2 id="FT-Protocol"><a href="#FT-Protocol" class="headerlink" title="FT Protocol"></a>FT Protocol</h2><p>logging channel的协议</p>
+<h3 id="基本要求"><a href="#基本要求" class="headerlink" title="基本要求"></a>基本要求</h3><p>当primary失效时，backup之后向client发送的所有output要与primary一致</p>
+<h3 id="Output-Rule"><a href="#Output-Rule" class="headerlink" title="Output Rule"></a>Output Rule</h3><p>为了避免primary在output中断的时候故障，backup没有接收到primary的状态</p>
+<ol>
+<li>primary 在进行output之前，都把output相关信息发一份给backup，收到backup的ack以后才真正执行output操作</li>
+<li>primary等待backup的ack期间也执行后续操作，只是推迟output而已</li>
+</ol>
+<p>注：该协议无法保证重复输出，依赖于其他设施保证（如TCP检测重复数据包）</p>
+<h2 id="故障监测和响应"><a href="#故障监测和响应" class="headerlink" title="故障监测和响应"></a>故障监测和响应</h2><h3 id="故障检测"><a href="#故障检测" class="headerlink" title="故障检测"></a>故障检测</h3><p>primary和backup之间有三种信息可以用于进行故障检测，如果心跳和日志都超时了，就说明发生故障了</p>
+<ol>
+<li>primary和backup之间的心跳信息（UDP）</li>
+<li>logging channel的流量监测</li>
+<li>backup给primary的ack</li>
+</ol>
+<h3 id="故障响应"><a href="#故障响应" class="headerlink" title="故障响应"></a>故障响应</h3><p>backup检测到故障（长时间没有收到响应）后，并不能直接顶上primary的位置。因为直接顶上有脑裂的风险，同时存在两个primary对磁盘数据进行读写会造成数据损坏。<br>所以两个虚拟机需要通过共享磁盘获取对方是否故障的信息。具体做法是通过test-and-set原子操作竞争磁盘，拿不到磁盘锁的就不是primary。<br>若primary失效，那么backup顶上，并通过VMotion创建一个新backup，若backup失效，则创建一个新backup</p>
+<h2 id="VM-FT和GFS的区别"><a href="#VM-FT和GFS的区别" class="headerlink" title="VM-FT和GFS的区别"></a>VM-FT和GFS的区别</h2><p>本质上就是备份级别的问题，VM-FT是机器级的复制（low level 机器指令），GFS是应用级的复制（high level 数据库命令等）</p>
+<ol>
+<li>VM-FT备份<strong>指令</strong>，可以为<strong>所有服务</strong>提供容错服务，且<strong>一致性严谨</strong></li>
+<li>GFS备份<strong>数据</strong>，<strong>只针对数据存储</strong>服务，备份策略更<strong>高效</strong></li>
+</ol>
+<h1 id="课程记录"><a href="#课程记录" class="headerlink" title="课程记录"></a>课程记录</h1><p>复制是容错的基本操作。但是复制并不能解决所有问题，主要解决的是fail-stop的错误，对软硬件的bug无能为力。</p>
+<h2 id="复制的两种策略"><a href="#复制的两种策略" class="headerlink" title="复制的两种策略"></a>复制的两种策略</h2><p>根据备份的内容和级别不同，可以分为以下两种备份策略</p>
+<ol>
+<li>state transfer状态转移：将内存、磁盘等内容拷贝给backup，简单粗暴</li>
+<li>replicated state machine复制状态机：将事件（指令）传递给backup，复杂</li>
+</ol>
+<p>replicated state machine只是同步时成本低，但是当backup&#x2F;primary失效时，仍是需要通过state transfer来创建新副本</p>
+<h2 id="VMware-FT工作原理"><a href="#VMware-FT工作原理" class="headerlink" title="VMware FT工作原理"></a>VMware FT工作原理</h2><p>在两台物理机上部署VMM，VMM向两个异地虚拟机分配相同的配置（内存等），同一个LAN里还有一些客户端和共享磁盘（共享磁盘和客户端可以大致认定相同）<br>由primary的VMM将外部输入转发给backup，backup的VMM知道自己是backup，所以会对backup虚拟机的输出进行丢包</p>
+<ul>
+<li>当primary发生故障时，backup的VMM会在一些防止split-brain的操作后充当primary，不再丢包，执行primary的转发功能，并控制生成backup</li>
+<li>当backup发生故障时，primary的VMM会控制生成新的backup，并转发数据包到新的backup上</li>
+</ul>
+<h2 id="不确定事件"><a href="#不确定事件" class="headerlink" title="不确定事件"></a>不确定事件</h2><p>不确定事件可以有以下几类</p>
+<ol>
+<li>客户端输入：不可控</li>
+<li>怪异指令：随机数、获取当前时间、获取计算机id</li>
+<li>多CPU并发的指令执行顺序</li>
+</ol>
+<p>这些事件都要通过log channel发送到backup，老师猜测的日志内容应该包括</p>
+<ol>
+<li>事件的指令序号</li>
+<li>日志类型：数据包or怪异指令？</li>
+<li>数据：数据包就是普通数据，怪异指令就是提供primary执行该指令后的系统状态，方便backup伪造该指令</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/oliviablog.github.io/tags/mit-6-824/" rel="tag"># mit 6.824</a>
+              <a href="/oliviablog.github.io/tags/%E5%AE%B9%E9%94%99/" rel="tag"># 容错</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/oliviablog.github.io/2023/09/30/DS_Lecture2%20GFS/" rel="prev" title="分布式系统 GFS">
+      <i class="fa fa-chevron-left"></i> 分布式系统 GFS
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/oliviablog.github.io/2023/10/04/%E4%BF%9D%E8%AF%81%E4%B8%8D%E9%87%8D%E5%A4%8D%E7%9A%84dp/" rel="next" title="保证不重复的dp">
+      保证不重复的dp <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB"><span class="nav-number">1.</span> <span class="nav-text">论文阅读</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E5%A4%87%E4%BB%BD%E5%AE%B9%E9%94%99"><span class="nav-number">1.1.</span> <span class="nav-text">主备份容错</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#VMware"><span class="nav-number">1.2.</span> <span class="nav-text">VMware</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#logging-buffer%E5%92%8Cchannel"><span class="nav-number">1.3.</span> <span class="nav-text">logging buffer和channel</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FT-Protocol"><span class="nav-number">1.4.</span> <span class="nav-text">FT Protocol</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E8%A6%81%E6%B1%82"><span class="nav-number">1.4.1.</span> <span class="nav-text">基本要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Output-Rule"><span class="nav-number">1.4.2.</span> <span class="nav-text">Output Rule</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E7%9B%91%E6%B5%8B%E5%92%8C%E5%93%8D%E5%BA%94"><span class="nav-number">1.5.</span> <span class="nav-text">故障监测和响应</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E6%A3%80%E6%B5%8B"><span class="nav-number">1.5.1.</span> <span class="nav-text">故障检测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E5%93%8D%E5%BA%94"><span class="nav-number">1.5.2.</span> <span class="nav-text">故障响应</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#VM-FT%E5%92%8CGFS%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">1.6.</span> <span class="nav-text">VM-FT和GFS的区别</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AF%BE%E7%A8%8B%E8%AE%B0%E5%BD%95"><span class="nav-number">2.</span> <span class="nav-text">课程记录</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%8D%E5%88%B6%E7%9A%84%E4%B8%A4%E7%A7%8D%E7%AD%96%E7%95%A5"><span class="nav-number">2.1.</span> <span class="nav-text">复制的两种策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#VMware-FT%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">2.2.</span> <span class="nav-text">VMware FT工作原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8D%E7%A1%AE%E5%AE%9A%E4%BA%8B%E4%BB%B6"><span class="nav-number">2.3.</span> <span class="nav-text">不确定事件</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/oliviablog.github.io/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/oliviablog.github.io/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/oliviablog.github.io/lib/anime.min.js"></script>
+  <script src="/oliviablog.github.io/lib/velocity/velocity.min.js"></script>
+  <script src="/oliviablog.github.io/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/oliviablog.github.io/js/utils.js"></script>
+
+<script src="/oliviablog.github.io/js/motion.js"></script>
+
+
+<script src="/oliviablog.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="/oliviablog.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
