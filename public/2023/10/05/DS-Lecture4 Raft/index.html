@@ -28,7 +28,7 @@
 <meta property="og:description" content="分布式协同算法 Raft">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2023-10-05T07:03:37.000Z">
-<meta property="article:modified_time" content="2023-10-07T03:38:36.356Z">
+<meta property="article:modified_time" content="2023-10-08T02:19:42.818Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="mit 6.824">
 <meta property="article:tag" content="容错">
@@ -193,7 +193,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2023-10-07 11:38:36" itemprop="dateModified" datetime="2023-10-07T11:38:36+08:00">2023-10-07</time>
+                <time title="Modified: 2023-10-08 10:19:42" itemprop="dateModified" datetime="2023-10-08T10:19:42+08:00">2023-10-08</time>
               </span>
 
           
@@ -209,6 +209,7 @@
       
         <p>分布式协同算法 Raft</p>
 <span id="more"></span>
+
 <h1 id="论文阅读"><a href="#论文阅读" class="headerlink" title="论文阅读"></a>论文阅读</h1><p>以前的算法存在两个问题，1. 不容易理解2.对于现实问题没有好的基础，所以raft设计的目标就是好理解。为此，Raft使用了两个方法，1.问题分解2.简化系统状态<br>raft算法核心是leader，leader的产生简化了系统，因为leader可以决定新日志条目存放的地方，数据流也只从leader流向其他server。系统最简单来说就是两步</p>
 <ol>
 <li>选举leader</li>
@@ -220,13 +221,14 @@
 <li><strong>日志复制</strong>：leader管理</li>
 <li><strong>安全</strong>：保证系统属性安全</li>
 </ol>
-<h2 id="Raft基础"><a href="#Raft基础" class="headerlink" title="Raft基础"></a>Raft基础</h2><h3 id="状态state"><a href="#状态state" class="headerlink" title="状态state"></a>状态state</h3><p>系统中的server有三个状态<code>leader</code>、<code>follower</code>、<code>candidate</code>。<br><code>follower</code>是完全被动的接收来自其他两种server的指令；<code>leader</code>会处理所有来自client的请求，其他server也将请求转发给<code>leader</code>；<code>candidate</code>则是选举过程中的中间状态。</p>
+<h2 id="Raft基础"><a href="#Raft基础" class="headerlink" title="Raft基础"></a>Raft基础</h2><h3 id="状态state"><a href="#状态state" class="headerlink" title="状态state"></a>状态state</h3><p>系统中的server有三个状态 <code>leader</code>、<code>follower</code>、<code>candidate</code>。<br><code>follower</code>是完全被动的接收来自其他两种server的指令；<code>leader</code>会处理所有来自client的请求，其他server也将请求转发给 <code>leader</code>；<code>candidate</code>则是选举过程中的中间状态。</p>
 <pre class="mermaid">graph TD
     A[Follower] -->|开始选举| B(Candidate)
     B --> |重新选举|B
     B --> |获得大多数选票| C(Leader)
     C --> |其他server有更大的term编号| A
     B --> |当前系统有leader了or其他server有更大的term编号| A</pre>
+
 <h3 id="时间片term"><a href="#时间片term" class="headerlink" title="时间片term"></a>时间片term</h3><p>系统的term（时间片）是任意(随机)长度的，每一个term都由选举开始，如果选举失败，该term立即终止，马上进入下一个term。Raft始终保证系统中有且仅有一个leader。<br>系统中的server保存了当前的term编号，如果server发现自己的term编号比其他server小，则自增到新的term编号，如果leader或candidate发现自己的编号过时了，则马上降级到follower<br>如果server收到了term编号不对的请求，将该请求丢弃。</p>
 <h3 id="通信-RPC"><a href="#通信-RPC" class="headerlink" title="通信 RPC"></a>通信 RPC</h3><p>系统中需要三条RPC通信路径</p>
 <ol>
@@ -282,11 +284,13 @@
 <li><strong>更新</strong>：将leader后续的log entries通过AppendEntries发送给follower，覆盖掉不一致的日志</li>
 </ol>
 <p>通过这些措施，leader在选举成功后，就会让整个系统里的follower逐渐收敛到自己的日志中来。同时，leader是不会删除（覆盖）自己的日志，只会覆盖掉follower的日志</p>
-<h2 id="安全性"><a href="#安全性" class="headerlink" title="安全性"></a>安全性</h2><h3 id="选举限制"><a href="#选举限制" class="headerlink" title="选举限制"></a>选举限制</h3><p>为了简化算法，只允许log entries从leader流向follower，Raft保证leader会包含已经被提交的所有log entries。<br>Raft使用voting的方法防止赢得选举的candidate缺log entries。candidate发送带有自己所有log entries的RequestVote RPC给其他server</p>
-<p>软件学院2023213926 林嘉恩 软件项目管理作业<br>项目NPV：<br>$NPV_A&#x3D;I_0 + \sum \frac{F_t}{(1+R+p_t)^t} &#x3D; -500,000 + \frac{50,000}{(1+0.2+0.03)^1} + \frac{250,000}{(1+0.2+0.03)^2} + \frac{350,000}{(1+0.2+0.03)^3} &#x3D; -106020 $</p>
-<p>$NPV_B&#x3D;I_0 + \sum \frac{F_t}{(1+R+p_t)^t} &#x3D; -200,000 + \frac{100,000}{(1+0.2+0.03)^1} + \frac{100,000}{(1+0.2+0.03)^2} + \frac{100,000}{(1+0.2+0.03)^3} + \frac{80,000}{(1+0.2+0.03)^4} &#x3D;  36089$</p>
-<p>$NPV_C&#x3D;I_0 + \sum \frac{F_t}{(1+R+p_t)^t} &#x3D; -1,000,000  + \frac{200,000}{(1+0.2+0.03)^1} + \frac{200,000}{(1+0.2+0.03)^2} + \frac{200,000}{(1+0.2+0.03)^3} + \frac{200,000}{(1+0.2+0.03)^4} + \frac{200,000}{(1+0.2+0.03)^5} + \frac{200,000}{(1+0.2+0.03)^6} &#x3D;  -381549$</p>
-<p>$NPV_D&#x3D;I_0 + \sum \frac{F_t}{(1+R+p_t)^t} &#x3D; -75,000 + \frac{15,000}{(1+0.2+0.03)^1} + \frac{25,000}{(1+0.2+0.03)^2} + \frac{50,000}{(1+0.2+0.03)^3} + \frac{50,000}{(1+0.2+0.03)^4} + \frac{150,000}{(1+0.2+0.03)^5} &#x3D;  55714$<br>故企业最终会选择B&#x2F;D，投资顺序会是 D &gt; B</p>
+<h2 id="安全性"><a href="#安全性" class="headerlink" title="安全性"></a>安全性</h2><h3 id="选举限制"><a href="#选举限制" class="headerlink" title="选举限制"></a>选举限制</h3><p>为了简化算法，只允许log entries从leader流向follower，Raft保证leader会包含已经被提交的所有log entries。<br>Raft使用voting的方法来保证leader拥有所有的log entries。candidate发送带有自己所有log entries的RequestVote RPC给其他server，如果其他server发现candidate的log entries没有自己新，则否决该candidate。<br>判断log entries新旧方法：比较最后一个log entry的index和term，term编号更大的更新，如果term编号一样，则index更大的更新</p>
+<h3 id="提交限制"><a href="#提交限制" class="headerlink" title="提交限制"></a>提交限制</h3><p>leader只能提交当前term中的log entry，相当于间接提交了其他term的log entry</p>
+<h1 id="课堂记录"><a href="#课堂记录" class="headerlink" title="课堂记录"></a>课堂记录</h1><h2 id="脑裂"><a href="#脑裂" class="headerlink" title="脑裂"></a>脑裂</h2><p>之前提到的容错系统mapreduce、GFS、Vmware FT，都是单主节点。单主节点本身就是一个单点障碍，一旦出错就比较麻烦。<br>主节点出错的一个方式是split brain(脑裂)，也就是说系统中存在多个主节点，可能会导致系统中出现各种矛盾和错误<br>解决方案包括两种</p>
+<ol>
+<li>构建完美的网络：高成本</li>
+<li>人工解决问题：慢</li>
+</ol>
 
     </div>
 
@@ -369,7 +373,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB"><span class="nav-number">1.</span> <span class="nav-text">论文阅读</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft%E5%9F%BA%E7%A1%80"><span class="nav-number">1.1.</span> <span class="nav-text">Raft基础</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8A%B6%E6%80%81state"><span class="nav-number">1.1.1.</span> <span class="nav-text">状态state</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E7%89%87term"><span class="nav-number">1.1.2.</span> <span class="nav-text">时间片term</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E4%BF%A1-RPC"><span class="nav-number">1.1.3.</span> <span class="nav-text">通信 RPC</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft%E6%80%A7%E8%B4%A8"><span class="nav-number">1.2.</span> <span class="nav-text">Raft性质</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%89%E4%B8%BE"><span class="nav-number">1.3.</span> <span class="nav-text">选举</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%89%E4%B8%BE%E7%BB%93%E6%9E%9C"><span class="nav-number">1.3.1.</span> <span class="nav-text">选举结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E8%B6%85%E6%97%B6%E6%9C%BA%E5%88%B6"><span class="nav-number">1.3.2.</span> <span class="nav-text">随机超时机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6"><span class="nav-number">1.4.</span> <span class="nav-text">日志复制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%A5%E5%BF%97%E5%86%85%E5%AE%B9"><span class="nav-number">1.4.1.</span> <span class="nav-text">日志内容</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#commited-entry"><span class="nav-number">1.4.2.</span> <span class="nav-text">commited entry</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E6%97%B6%E6%97%A5%E5%BF%97%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">1.4.3.</span> <span class="nav-text">运行时日志一致性保证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#leader%E5%AF%B9%E6%97%A5%E5%BF%97%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">1.4.4.</span> <span class="nav-text">leader对日志一致性保证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">1.5.</span> <span class="nav-text">安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%89%E4%B8%BE%E9%99%90%E5%88%B6"><span class="nav-number">1.5.1.</span> <span class="nav-text">选举限制</span></a></li></ol></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB"><span class="nav-number">1.</span> <span class="nav-text">论文阅读</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft%E5%9F%BA%E7%A1%80"><span class="nav-number">1.1.</span> <span class="nav-text">Raft基础</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8A%B6%E6%80%81state"><span class="nav-number">1.1.1.</span> <span class="nav-text">状态state</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E7%89%87term"><span class="nav-number">1.1.2.</span> <span class="nav-text">时间片term</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E4%BF%A1-RPC"><span class="nav-number">1.1.3.</span> <span class="nav-text">通信 RPC</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft%E6%80%A7%E8%B4%A8"><span class="nav-number">1.2.</span> <span class="nav-text">Raft性质</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%89%E4%B8%BE"><span class="nav-number">1.3.</span> <span class="nav-text">选举</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%89%E4%B8%BE%E7%BB%93%E6%9E%9C"><span class="nav-number">1.3.1.</span> <span class="nav-text">选举结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E8%B6%85%E6%97%B6%E6%9C%BA%E5%88%B6"><span class="nav-number">1.3.2.</span> <span class="nav-text">随机超时机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6"><span class="nav-number">1.4.</span> <span class="nav-text">日志复制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%A5%E5%BF%97%E5%86%85%E5%AE%B9"><span class="nav-number">1.4.1.</span> <span class="nav-text">日志内容</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#commited-entry"><span class="nav-number">1.4.2.</span> <span class="nav-text">commited entry</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E6%97%B6%E6%97%A5%E5%BF%97%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">1.4.3.</span> <span class="nav-text">运行时日志一致性保证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#leader%E5%AF%B9%E6%97%A5%E5%BF%97%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">1.4.4.</span> <span class="nav-text">leader对日志一致性保证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">1.5.</span> <span class="nav-text">安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%89%E4%B8%BE%E9%99%90%E5%88%B6"><span class="nav-number">1.5.1.</span> <span class="nav-text">选举限制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E4%BA%A4%E9%99%90%E5%88%B6"><span class="nav-number">1.5.2.</span> <span class="nav-text">提交限制</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AF%BE%E5%A0%82%E8%AE%B0%E5%BD%95"><span class="nav-number">2.</span> <span class="nav-text">课堂记录</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%84%91%E8%A3%82"><span class="nav-number">2.1.</span> <span class="nav-text">脑裂</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
