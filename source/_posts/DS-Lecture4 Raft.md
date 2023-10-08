@@ -143,3 +143,14 @@ leader只能提交当前term中的log entry，相当于间接提交了其他term
 解决方案包括两种
 1. 构建完美的网络：高成本
 2. 人工解决问题：慢
+
+## Raft
+在系统中raft相当于底层服务，由上层应用调用。上层应用可以是多样的，例如kv数据库等。
+client向raft的leader发送请求后，leader将该请求变成日志发送给集群中的其他server。
+当**半数以上**的server拷贝了该日志后，raft向上层应用发送信息并commit该log entry。
+commit信息会随着AppendEntries（心跳or下一条日志）发送给follower，follower也会执行该操作。
+### 日志
+在Raft中日志有以下作用：
+1. **确定操作顺序**：leader收到不同操作后通过日志确定顺序
+2. **缓存操作**：follower收到操作后缓存，等待leader发送commit信号；leader缓存操作，给follower重发信号
+3. **状态恢复**：
