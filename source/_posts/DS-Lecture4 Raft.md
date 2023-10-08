@@ -135,3 +135,11 @@ Raft使用voting的方法来保证leader拥有所有的log entries。candidate�
 
 ### 提交限制
 leader只能提交当前term中的log entry，相当于间接提交了其他term的log entry
+
+# 课堂记录
+## 脑裂
+之前提到的容错系统mapreduce、GFS、Vmware FT，都是单主节点。单主节点本身就是一个单点障碍，一旦出错就比较麻烦。
+主节点出错的一个方式是split brain(脑裂)，也就是说系统中存在多个主节点，可能会导致系统中出现各种矛盾和错误
+解决方案包括两种
+1. 构建完美的网络：高成本
+2. 人工解决问题：慢
